@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import useVideoController from "./useVideoController"
 import clsx from "clsx";
 import { getFontCls } from "@/app/fonts";
@@ -80,16 +80,79 @@ const Hero = () => {
         })
     })
 
-    console.log({ currentIndex })
+    const [show, setShow] = useState(false);
+
+    useEffect(() => {
+        if (show) {
+            setTimeout(() => {
+                setShow(false);
+            }, 1000)
+        }
+    }, [show])
+
+    type Coordinates = {
+        x: number,
+        y: number
+    }
+
+    type Axis = {
+        x: number,
+        y: number,
+        z: number
+    }
+
+    const [rotation, setRotation] = useState<Axis>({
+        x: 0,
+        y: 0,
+        z: 0
+    })
+
+    const [translation, setTranslation] = useState<Axis>({
+        x: 0,
+        y: 0,
+        z: 0
+    })
 
     return (
         <div className="relative h-dvh w-screen overflow-x-hidden">
             {isLoading ? <div className="flex-center absolute z-[100] h-dvh w-screen overflow-hidden bg-violet-50">
                 <ThreeDotSpinner />
-            </div> : <div className="relative z-10 h-dvh w-screen overflow-hidden rounded-lg bg-blue-75" id="video-frame">
+            </div> : <div className="relative z-10 h-dvh w-screen overflow-hidden rounded-lg bg-blue-75" id="video-frame" onMouseMove={(e) => {
+                setShow(true);
+                const centerOfScreen: Coordinates = {
+                    x: window.innerWidth / 2,
+                    y: window.innerHeight / 2
+                }
+                const mousePosition: Coordinates = {
+                    x: e.clientX,
+                    y: e.clientY
+                }
+                // get angle of mouse from center of screen
+                const angleOfMouseFromCenterInRadian = Math.atan2(mousePosition.y - centerOfScreen.y, mousePosition.x - centerOfScreen.x)
+                // get height of mouse from center of screen
+                const distanceOfMouseFromHorizontalAxis = mousePosition.y - centerOfScreen.y
+                const distanceOfMouseFromVerticalAxis = mousePosition.x - centerOfScreen.x
+                const rotationScale = 0.08;
+                const translationScale = 0.1;
+                setRotation({
+                    x: distanceOfMouseFromHorizontalAxis * rotationScale,
+                    y: distanceOfMouseFromVerticalAxis * rotationScale,
+                    z: 0,
+                })
+                setTranslation({
+                    x: (distanceOfMouseFromHorizontalAxis) * translationScale,
+                    y: (distanceOfMouseFromVerticalAxis) * translationScale,
+                    z: 0
+                })
+            }}>
                 <div>
                     {/* Mini video (next video preview) */}
-                    <div className="mask-clip-path absolute-center absolute z-50 size-64 cursor-pointer overflow-hidden rounded-lg scale-50 opacity-0 transition-all duration-500 ease-in hover:scale-100 hover:opacity-100">
+                    {/*  scale-50 opacity-0 hover:scale-100 hover:opacity-100 */}
+                    <div style={{
+                        transformStyle: 'preserve-3d',
+                        transition: 'scale',
+                        transform: `translateX(calc(-50% + ${translation.y}px)) translateY(calc(-50% + ${translation.x}px)) rotateX(${rotation.x}deg) rotateY(${rotation.y}deg) rotateZ(${rotation.z}deg) scale(${show ? 1 : 0.1})`
+                    }} className={`mask-clip-path absolute-center absolute z-50 size-64 cursor-pointer overflow-hidden rounded-lg    ease-in ${show ? "opacity-100" : "opacity-0"}`}>
                         <div onClick={handleMiniVdClick} className="origin-center">
                             {/* Mini video element */}
                             <video
